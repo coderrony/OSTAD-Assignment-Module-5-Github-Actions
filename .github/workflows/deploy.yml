@@ -3,6 +3,7 @@ name: OSTAD-Assignment-Module-5 CI/CD Pipeline
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 env:
   DEPLOY_PATH: /home/ubuntu/OSTAD-Assignment-Module-5-Github-Actions
   NODE_VERSION: "20.0" # Specify the Node.js version you want to use
@@ -96,7 +97,6 @@ jobs:
 
       - name: Deployment Mechanism
         run: |
-
           echo "=========================================="
           echo "Deploying Application"
           echo "=========================================="
