@@ -23,6 +23,9 @@ app.get('/api', (req, res) => {
 app.get('/api2', (req, res) => {
   res.json({ message: 'my api2..........again' });
 });
+app.get('/rony', (req, res) => {
+  res.json({ message: 'Welcome to Rony\'s API endpoint!' });
+});
 
 let server;
 

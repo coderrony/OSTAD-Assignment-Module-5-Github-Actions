@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 env:
   DEPLOY_PATH: /home/ubuntu/OSTAD-Assignment-Module-5-Github-Actions
-  NODE_VERSION: "20" # Node.js major version for system-wide install
+  NODE_VERSION: "20" # Specify the Node.js version you want to use
 
 jobs:
   # (Test Job)
@@ -16,26 +16,56 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # System-wide Node.js - EC2 এ node/npm সবসময় available থাকবে
-      - name: Install Node.js (System-wide via NodeSource)
+      - name: Install Prerequisites (if needed)
         run: |
-          bash << "EOF"
-           set -e
-           echo "=========================================="
-           echo "Installing/Verifying Node.js (System-wide)"
-           echo "=========================================="
-           if ! command -v node &> /dev/null; then
-             echo "Installing Node.js ${{ env.NODE_VERSION }} via NodeSource..."
-             curl -fsSL https://deb.nodesource.com/setup_${{ env.NODE_VERSION }}.x | sudo -E bash -
-             sudo apt-get install -y nodejs
-             echo "Node.js $(node --version) installed system-wide"
-           else
-             echo "Node.js $(node --version) already installed"
-           fi
-           echo "npm: $(npm --version)"
+         bash << "EOF"
+          echo "=========================================="
+          echo "Installing/Verifying Prerequisites"
+          echo "=========================================="
+          # Function to install NVM if not present
+          install_nvm() {
+            if [ ! -d "$HOME/.nvm" ]; then
+              echo "Installing NVM..."
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              echo "NVM installed"
+            else
+              echo "NVM already installed"
+            fi
+          }
+          # Function to load NVM
+          load_nvm() {
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          }
+
+          # Install NVM
+          install_nvm
+
+          # Load NVM
+          load_nvm
+
+          # Install Node.js if not present
+          if ! command -v node &> /dev/null; then
+            echo "Installing Node.js ${{ env.NODE_VERSION }}..."
+            nvm install ${{ env.NODE_VERSION }}
+            nvm use ${{ env.NODE_VERSION }}
+            nvm alias default ${{ env.NODE_VERSION }}
+            echo "Node.js $(node --version) installed"
+          else
+            echo "Node.js $(node --version) already installed"
+            nvm install ${{ env.NODE_VERSION }}
+            nvm use ${{ env.NODE_VERSION }}
+          fi
           EOF
+
       - name: Run Tests and Capture Results
         run: |
+          # Load NVM first
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
           # Dependency install & test
           npm install
           npm run check > test-results.txt || echo "Tests failed" > test-results.txt
@@ -67,23 +97,19 @@ jobs:
           cat test-results.txt
           echo "--- Test Results End ---"
 
-      # Deploy job এও Node.js ensure করা (যদি test skip হয়)
-      - name: Ensure Node.js is installed
-        run: |
-          if ! command -v node &> /dev/null; then
-            echo "Node.js not found - installing via NodeSource..."
-            curl -fsSL https://deb.nodesource.com/setup_${{ env.NODE_VERSION }}.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-          fi
-          echo "Node: $(node --version), npm: $(npm --version)"
-
       - name: Deployment Mechanism
         run: |
-          bash << "EOF"
-          set -e
+         bash << "EOF"
           echo "=========================================="
           echo "Deploying Application"
           echo "=========================================="
+          # Load NVM
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+          echo "Using Node: $(node -v)"
+          # Use Node LTS
+          nvm use ${{ env.NODE_VERSION }}
           echo "Node: $(node --version)"
           echo "npm: $(npm --version)"
           echo ""
@@ -102,22 +128,20 @@ jobs:
           cd ${{ env.DEPLOY_PATH }}
 
           # Deploy assignment-backend
-          echo ""
-          echo "=========================================="
-          echo "Deploying assignment-backend"
-          echo "=========================================="
+            echo ""
+            echo "=========================================="
+            echo "Deploying assignment-backend"
+            echo "=========================================="
 
-          # Install dependencies
-          echo "Installing assignment-backend dependencies..."
-          npm install --production
+            # Install dependencies
+            echo "Installing assignment-backend dependencies..."
+            npm install --production
 
-          # Install PM2 globally (system-wide, PATH এ থাকবে)
+          # Install PM2 if not present
           if ! command -v pm2 &> /dev/null; then
-            echo "Installing PM2 globally..."
-            sudo npm install -g pm2
+            echo "Installing PM2..."
+            npm install -g pm2
             echo "PM2 installed"
-            # PM2 startup - server reboot এ application auto start হবে
-            sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
           else
             echo "PM2 $(pm2 --version) already installed"
           fi
@@ -128,11 +152,11 @@ jobs:
           elif [ -f "server.js" ]; then
             SERVER_FILE="server.js"
           else
-            echo "Error: server.js not found in src/ or root directory"
+            echo "Error: server.js not found in OSTAD-Assignment-Module-5-Github-Actions/src/ or OSTAD-Assignment-Module-5-Github-Actions/"
             exit 1
           fi
 
-          # PM2 দিয়ে application চালু/restart
+          # use PM2 running application 
           if pm2 describe assignment-backend > /dev/null 2>&1; then
             echo "Restarting application..."
             pm2 restart assignment-backend --update-env
@@ -141,5 +165,4 @@ jobs:
             pm2 start $SERVER_FILE --name assignment-backend
           fi
           pm2 save
-
           EOF
