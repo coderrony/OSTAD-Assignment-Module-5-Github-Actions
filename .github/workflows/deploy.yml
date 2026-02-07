@@ -19,6 +19,7 @@ jobs:
       - name: Install Prerequisites (if needed)
         run: |
          bash << "EOF"
+          set -e
           echo "=========================================="
           echo "Installing/Verifying Prerequisites"
           echo "=========================================="
@@ -100,6 +101,7 @@ jobs:
       - name: Deployment Mechanism
         run: |
          bash << "EOF"
+         set -e
           echo "=========================================="
           echo "Deploying Application"
           echo "=========================================="
