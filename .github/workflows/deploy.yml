@@ -67,7 +67,7 @@ jobs:
 
           # Dependency install & test
           npm install
-          npm run check > test-results.txt || echo "Tests failed" > test-results.txt
+          npm run check > test-results.txt || { echo "Tests failed" > test-results.txt; exit 1; }
 
       # Artifact Upload
       - name: Upload Test Results Artifact
