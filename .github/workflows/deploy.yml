@@ -19,19 +19,21 @@ jobs:
       # System-wide Node.js - EC2 এ node/npm সবসময় available থাকবে
       - name: Install Node.js (System-wide via NodeSource)
         run: |
-          echo "=========================================="
-          echo "Installing/Verifying Node.js (System-wide)"
-          echo "=========================================="
-          if ! command -v node &> /dev/null; then
-            echo "Installing Node.js ${{ env.NODE_VERSION }} via NodeSource..."
-            curl -fsSL https://deb.nodesource.com/setup_${{ env.NODE_VERSION }}.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-            echo "Node.js $(node --version) installed system-wide"
-          else
-            echo "Node.js $(node --version) already installed"
-          fi
-          echo "npm: $(npm --version)"
-
+          bash << "EOF"
+           set -e
+           echo "=========================================="
+           echo "Installing/Verifying Node.js (System-wide)"
+           echo "=========================================="
+           if ! command -v node &> /dev/null; then
+             echo "Installing Node.js ${{ env.NODE_VERSION }} via NodeSource..."
+             curl -fsSL https://deb.nodesource.com/setup_${{ env.NODE_VERSION }}.x | sudo -E bash -
+             sudo apt-get install -y nodejs
+             echo "Node.js $(node --version) installed system-wide"
+           else
+             echo "Node.js $(node --version) already installed"
+           fi
+           echo "npm: $(npm --version)"
+          EOF
       - name: Run Tests and Capture Results
         run: |
           # Dependency install & test
@@ -77,6 +79,8 @@ jobs:
 
       - name: Deployment Mechanism
         run: |
+          bash << "EOF"
+          set -e
           echo "=========================================="
           echo "Deploying Application"
           echo "=========================================="
@@ -137,3 +141,5 @@ jobs:
             pm2 start $SERVER_FILE --name assignment-backend
           fi
           pm2 save
+
+          EOF
