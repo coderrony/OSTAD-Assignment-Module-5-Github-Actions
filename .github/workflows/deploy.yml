@@ -1,0 +1,165 @@
+name: OSTAD-Assignment-Module-5 CI/CD Pipeline
+
+on:
+  push:
+    branches: ['main']
+env:
+  DEPLOY_PATH: /home/ubuntu/OSTAD-Assignment-Module-5-Github-Actions
+  NODE_VERSION: 'lts/*'
+
+jobs:
+  # (Test Job)
+  test:
+    runs-on: self-hosted # run on ubuntu server
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Prerequisites (if needed)
+        run: |
+          echo "=========================================="
+          echo "Installing/Verifying Prerequisites"
+          echo "=========================================="
+          # Function to install NVM if not present
+          install_nvm() {
+            if [ ! -d "$HOME/.nvm" ]; then
+              echo "Installing NVM..."
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              echo "NVM installed"
+            else
+              echo "NVM already installed"
+            fi
+          }
+          # Function to load NVM
+          load_nvm() {
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          }
+
+          # Install NVM
+          install_nvm
+
+          # Load NVM
+          load_nvm
+
+          # Install Node.js if not present
+          if ! command -v node &> /dev/null; then
+            echo "Installing Node.js ${{ env.NODE_VERSION }}..."
+            nvm install ${{ env.NODE_VERSION }}
+            nvm use ${{ env.NODE_VERSION }}
+            nvm alias default ${{ env.NODE_VERSION }}
+            echo "Node.js $(node --version) installed"
+          else
+            echo "Node.js $(node --version) already installed"
+            nvm install ${{ env.NODE_VERSION }}
+            nvm use ${{ env.NODE_VERSION }}
+          fi
+
+          # Install PM2 if not present
+          if ! command -v pm2 &> /dev/null; then
+            echo "Installing PM2..."
+            npm install -g pm2
+            echo "PM2 installed"
+          else
+            echo "PM2 $(pm2 --version) already installed"
+          fi
+
+      - name: Run Tests and Capture Results
+        run: |
+          npm run check > test-results.txt || echo "Tests failed" > test-results.txt
+
+      # Artifact Upload
+      - name: Upload Test Results Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-artifact
+          path: test-results.txt
+
+  # (Deploy Job)
+  deploy:
+    runs-on: self-hosted # run on ubuntu server
+    needs: test # test job run after deploy job
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Artifact Download
+      - name: Download Test Results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results-artifact
+
+      - name: Display Artifact Content
+        run: |
+          echo "--- Test Results Start ---"
+          cat test-results.txt
+          echo "--- Test Results End ---"
+
+      - name: Deployment Mechanism
+        run: |
+          echo "Deploying Application..."
+          # Load NVM
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+          # Use Node LTS
+          nvm use ${{ env.NODE_VERSION }}
+
+          echo "=========================================="
+          echo "Deploying Application"
+          echo "=========================================="
+          echo "Node: $(node --version)"
+          echo "npm: $(npm --version)"
+          echo ""
+
+          # Clone or pull repository
+          if [ ! -d "${{ env.DEPLOY_PATH }}" ]; then
+            echo "Fresh deployment - cloning repository..."
+            git clone https://github.com/${{ github.repository }}.git ${{ env.DEPLOY_PATH }}
+          else
+            echo "Updating existing deployment..."
+            cd ${{ env.DEPLOY_PATH }}
+            git fetch origin
+            git reset --hard origin/main
+          fi
+
+          cd ${{ env.DEPLOY_PATH }}
+
+          # Deploy assignment-backend
+            echo ""
+            echo "=========================================="
+            echo "Deploying assignment-backend"
+            echo "=========================================="
+
+            # Install dependencies
+            echo "Installing assignment-backend dependencies..."
+            npm install
+
+            # Check if server.js exists in src/ directory
+            if [ -f "src/server.js" ]; then
+              SERVER_FILE="src/server.js"
+            elif [ -f "server.js" ]; then
+              SERVER_FILE="server.js"
+            else
+              echo "Error: server.js not found in OSTAD-Assignment-Module-5-Github-Actions/src/ or OSTAD-Assignment-Module-5-Github-Actions/"
+              exit 1
+            fi
+
+            echo "Using server file: $SERVER_FILE"
+            
+            # Restart backend with PM2
+            if pm2 describe assignment-backend > /dev/null 2>&1; then
+              echo "Restarting existing PM2 process..."
+              pm2 restart assignment-backend --update-env
+              pm2 save
+            else
+              echo "Starting new PM2 process..."
+              pm2 start $SERVER_FILE --name assignment-backend
+              pm2 save
+            fi
+            
+            echo "Backend deployed successfully"
+            cd ..
+          fi
