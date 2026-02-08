@@ -3,7 +3,7 @@
 This repository contains the submission for **Module 5 Assignment**, focused on implementing a full CI/CD pipeline. The pipeline automates testing, artifact management, and deployment of a Node.js application to a self-hosted environment (AWS EC2).
 
 ## 📌 Project Overview
-The main goal of this project is to demonstrate how to use **GitHub Actions** to build a professional deployment workflow.
+The primary objective of this project is to demonstrate how to utilize **GitHub Actions** to create a professional deployment workflow.
 
 ### 🌟 Key Features:
 - **Automated Testing:** Runs application checks on every push.
