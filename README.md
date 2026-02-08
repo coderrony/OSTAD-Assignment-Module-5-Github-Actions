@@ -1,4 +1,4 @@
-# 🚀 CI/CD Pipeline with GitHub Actions & Self-Hosted Runner
+# 🚀 CI/CD Pipeline with GitHub Actions & Self-Hosted Runner--
 
 This repository contains the submission for **Module 5 Assignment**, focused on implementing a full CI/CD pipeline. The pipeline automates testing, artifact management, and deployment of a Node.js application to a self-hosted environment (AWS EC2).
 
