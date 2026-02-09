@@ -70,6 +70,7 @@ jobs:
 
       - name: Deployment Mechanism
         run: |
+          bash << 'EOF'
           set -e
           echo "=========================================="
           echo "Deploying Application"
@@ -126,3 +127,4 @@ jobs:
             pm2 start $SERVER_FILE --name assignment-backend
           fi
           pm2 save
+          EOF
