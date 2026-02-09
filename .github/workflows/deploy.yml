@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 env:
   DEPLOY_PATH: /home/ubuntu/OSTAD-Assignment-Module-5-Github-Actions
-  NODE_VERSION: "20" # Specify the Node.js version you want to use
+
 
 jobs:
   # (Test Job)
@@ -22,48 +22,20 @@ jobs:
           echo "=========================================="
           echo "Installing/Verifying Prerequisites"
           echo "=========================================="
-          # Function to install NVM if not present
-          install_nvm() {
-            if [ ! -d "$HOME/.nvm" ]; then
-              echo "Installing NVM..."
-              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-              export NVM_DIR="$HOME/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              echo "NVM installed"
-            else
-              echo "NVM already installed"
-            fi
-          }
-          # Function to load NVM
-          load_nvm() {
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          }
-
-          # Install NVM
-          install_nvm
-
-          # Load NVM
-          load_nvm
+ 
 
           # Install Node.js if not present
           if ! command -v node &> /dev/null; then
-            echo "Installing Node.js ${{ env.NODE_VERSION }}..."
-            nvm install ${{ env.NODE_VERSION }}
-            nvm use ${{ env.NODE_VERSION }}
-            nvm alias default ${{ env.NODE_VERSION }}
-            echo "Node.js $(node --version) installed"
+            echo "Installing Node.js ..."
+            node -v || curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt install -y nodejs
           else
-            echo "Node.js $(node --version) already installed"
-            nvm install ${{ env.NODE_VERSION }}
-            nvm use ${{ env.NODE_VERSION }}
+            echo "Node.js already installed"
+            
           fi
 
       - name: Run Tests and Capture Results
         run: |
-          # Load NVM first
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
           # Dependency install & test
           npm install
@@ -102,16 +74,6 @@ jobs:
           echo "=========================================="
           echo "Deploying Application"
           echo "=========================================="
-          # Load NVM
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
-          echo "Using Node: $(node -v)"
-          # Use Node LTS
-          nvm use ${{ env.NODE_VERSION }}
-          echo "Node: $(node --version)"
-          echo "npm: $(npm --version)"
-          echo ""
 
           # Clone or pull repository
           if [ ! -d "${{ env.DEPLOY_PATH }}" ]; then
@@ -139,7 +101,7 @@ jobs:
           # Install PM2 if not present
           if ! command -v pm2 &> /dev/null; then
             echo "Installing PM2..."
-            npm install -g pm2
+            sudo npm install -g pm2
             echo "PM2 installed"
           else
             echo "PM2 $(pm2 --version) already installed"
