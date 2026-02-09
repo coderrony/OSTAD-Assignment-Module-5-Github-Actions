@@ -24,7 +24,7 @@ app.get('/api2', (req, res) => {
   res.json({ message: 'test api2 for github actions' });
 });
 app.get('/rony', (req, res) => {
-  res.json({ message: 'i change my mine' });
+  res.json({ message: 'i change my mine .... ' });
 });
 
 let server;
